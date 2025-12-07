@@ -1,3 +1,4 @@
+// models/TuitionPost.js
 const mongoose = require('mongoose');
 
 const tuitionPostSchema = new mongoose.Schema({
@@ -9,7 +10,11 @@ const tuitionPostSchema = new mongoose.Schema({
   schedule: { type: String, required: true },
   description: String,
   postedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  status: { 
+    type: String, 
+    enum: ['pending', 'approved', 'rejected'], 
+    default: 'pending' 
+  },
   createdAt: { type: Date, default: Date.now }
 });
 

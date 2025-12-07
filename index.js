@@ -5,6 +5,7 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 
 const authRoutes = require('./routes/auth');
+const adminRoutes = require('./routes/admin');
 const tuitionRoutes = require('./routes/tuitions');
 const applicationRoutes = require('./routes/applications');
 const userRoutes = require('./routes/users');
@@ -19,6 +20,7 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/tuitions', tuitionRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/payments', paymentRoutes);
