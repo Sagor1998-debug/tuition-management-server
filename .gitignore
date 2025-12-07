@@ -1,0 +1,7 @@
+# Ignore environment files
+.env
+
+# Ignore node modules
+node_modules/
+
+# Add any other files or folders you want Git to ignore here
