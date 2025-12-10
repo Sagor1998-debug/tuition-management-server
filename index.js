@@ -24,6 +24,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/admin', require('./routes/admin'));
 
 // Test route
 app.get('/', (req, res) => res.send('Tuition Management Server Running!'));
