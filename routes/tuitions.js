@@ -63,6 +63,49 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
+// Student: Update own tuition post
+router.put('/:id', auth, async (req, res) => {
+  if (req.user.role !== 'student') return res.status(403).json({ msg: 'Only students can update their posts' });
+  
+  try {
+    const tuition = await TuitionPost.findOneAndUpdate(
+      { _id: req.params.id, postedBy: req.user.id }, // Ensure only owner can update
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    if (!tuition) {
+      return res.status(404).json({ msg: 'Tuition not found or you are not the owner' });
+    }
+
+    res.json(tuition);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
+
+// Student: Delete own tuition post
+router.delete('/:id', auth, async (req, res) => {
+  if (req.user.role !== 'student') return res.status(403).json({ msg: 'Only students can delete their posts' });
+  
+  try {
+    const tuition = await TuitionPost.findOneAndDelete({
+      _id: req.params.id,
+      postedBy: req.user.id
+    });
+
+    if (!tuition) {
+      return res.status(404).json({ msg: 'Tuition not found or you are not the owner' });
+    }
+
+    res.json({ msg: 'Tuition deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
+
 // Admin: Approve or Reject tuition
 router.patch('/:id/status', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ msg: 'Admin only' });

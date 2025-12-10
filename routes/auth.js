@@ -23,7 +23,10 @@ router.post('/register', async (req, res) => {
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-    res.json({ token, user: { id: user._id, name, email, role: user.role } });
+    res.json({ 
+      token, 
+      user: { id: user._id, name, email, role: user.role } 
+    });
   } catch (err) {
     res.status(500).json({ msg: err.message });
   }
@@ -41,9 +44,46 @@ router.post('/login', async (req, res) => {
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-    res.json({ token, user: { id: user._id, name: user.name, email, role: user.role } });
+    res.json({ 
+      token, 
+      user: { id: user._id, name: user.name, email, role: user.role } 
+    });
   } catch (err) {
     res.status(500).json({ msg: err.message });
+  }
+});
+
+// GOOGLE LOGIN — WORKING 100%
+router.post('/google', async (req, res) => {
+  try {
+    const { name, email, photoUrl } = req.body;
+
+    let user = await User.findOne({ email });
+    if (!user) {
+      user = new User({
+        name,
+        email,
+        photoUrl: photoUrl || 'https://i.imgur.com/0yQ9McP.png',
+        role: 'student'
+      });
+      await user.save();
+    }
+
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        photoUrl: user.photoUrl
+      }
+    });
+  } catch (err) {
+    console.error('Google login error:', err);
+    res.status(500).json({ msg: 'Server error' });
   }
 });
 

@@ -55,4 +55,18 @@ router.get('/profile', auth, async (req, res) => {
   }
 });
 
+// Public: Get latest tutors for Home page
+router.get('/tutors', async (req, res) => {
+  try {
+    const tutors = await User.find({ role: 'tutor' })
+      .select('name photoUrl') // only send name and photo
+      .sort({ createdAt: -1 })
+      .limit(12);
+    res.json(tutors);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
+
 module.exports = router;
