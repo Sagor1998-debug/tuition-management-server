@@ -11,28 +11,20 @@ const applicationRoutes = require('./routes/applications');
 const userRoutes = require('./routes/users');
 const paymentRoutes = require('./routes/payments');
 const webhooksRouter = require('./routes/webhooks');
+const devRoutes = require('./routes/dev');
 
 const app = express();
 
-// ──────────────────────────────────────────────────────
-// 1. CORS
-// ──────────────────────────────────────────────────────
+// CORS
 app.use(cors({ origin: true }));
 
-// ──────────────────────────────────────────────────────
-// 2. STRIPE WEBHOOK — MUST BE THE VERY FIRST THING
-//     (before express.json() so the raw body stays intact)
-// ──────────────────────────────────────────────────────
+// Stripe Webhook
 app.use('/webhook', express.raw({ type: 'application/json' }), webhooksRouter);
 
-// ──────────────────────────────────────────────────────
-// 3. Now we can safely parse JSON for all other routes
-// ──────────────────────────────────────────────────────
+// Parse JSON
 app.use(express.json());
 
-// ──────────────────────────────────────────────────────
-// 4. All your normal API routes
-// ──────────────────────────────────────────────────────
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/tuitions', tuitionRoutes);
 app.use('/api/admin', adminRoutes);
@@ -40,17 +32,18 @@ app.use('/api/applications', applicationRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/payments', paymentRoutes);
 
-// Test route
+// DEV Routes
+app.use('/dev', devRoutes);
+
+// Root test
 app.get('/', (req, res) => res.send('Tuition Management Server Running!'));
 
-// ──────────────────────────────────────────────────────
-// MongoDB connection
-// ──────────────────────────────────────────────────────
+// DB Connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.log('MongoDB error:', err));
 
-// Auto-create Admin (unchanged)
+// Auto-create admin
 const User = require('./models/User');
 const createAdmin = async () => {
   try {
@@ -70,10 +63,8 @@ const createAdmin = async () => {
 };
 createAdmin();
 
-// ──────────────────────────────────────────────────────
-// Start server
-// ──────────────────────────────────────────────────────
+// Start Server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+app.listen(PORT, () =>
+  console.log(`Server running on http://localhost:${PORT}`)
+);
