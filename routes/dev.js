@@ -40,8 +40,18 @@ router.get('/students/:id', async (req, res) => {
 // ─────────────────────────────────────────────
 router.get('/tutors', async (req, res) => {
   try {
-    const tutors = await User.find({ role: 'tutor' });
-    res.json(tutors);
+    // fetch all tutors as plain JS objects
+    const tutors = await User.find({ role: 'tutor' }).lean();
+
+    // inject default qualifications and experience if missing
+    const tutorsWithDefaults = tutors.map(t => ({
+      ...t,
+      qualifications: t.qualifications || "Not specified",
+      experience: t.experience || "Not specified"
+    }));
+
+    // send to frontend wrapped in "tutors" key
+    res.json({ tutors: tutorsWithDefaults });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -24,8 +24,9 @@ const userSchema = new mongoose.Schema({
   photoUrl: {
     type: String,
     default: 'https://i.imgur.com/0yQ9McP.png'
-  // ← fixed the missing quote
   },
+  qualifications: { type: String },  // ← added
+  experience: { type: String },      // ← added
   ratings: [
     {
       student: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

@@ -32,6 +32,27 @@ app.use('/api/applications', applicationRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/payments', paymentRoutes);
 
+
+// ADD THIS ROUTE ONLY (paste it with your other routes)
+app.get('/api/users/:id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.role !== 'tutor') {
+      return res.status(404).json({ message: 'Tutor not found' });
+    }
+
+    res.json(user);
+  } catch (err) {
+    console.error('Error fetching tutor:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // DEV Routes
 app.use('/dev', devRoutes);
 
