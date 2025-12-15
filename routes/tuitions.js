@@ -63,6 +63,18 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
+// Student: Get only their own tuitions
+router.get('/my', auth, async (req, res) => {
+  try {
+    const tuitions = await TuitionPost.find({ postedBy: req.user.id })
+      .sort({ createdAt: -1 });
+    res.json(tuitions);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
+
 // Student: Update own tuition post
 router.put('/:id', auth, async (req, res) => {
   if (req.user.role !== 'student') return res.status(403).json({ msg: 'Only students can update their posts' });
