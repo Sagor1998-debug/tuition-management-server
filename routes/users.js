@@ -32,7 +32,6 @@ router.get('/tutors', async (req, res) => {
 
     res.json(tutors);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ msg: 'Server error' });
   }
 });
@@ -53,7 +52,6 @@ router.get('/tutors/:id', async (req, res) => {
 
     res.json(tutor);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ msg: 'Server error' });
   }
 });
@@ -104,13 +102,37 @@ router.post('/bookmark/:tuitionId', auth, async (req, res) => {
 });
 
 /* =========================
-   AUTH USER: PROFILE
+   AUTH USER: GET PROFILE
 ========================= */
 router.get('/profile', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
     res.json(user);
   } catch (err) {
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
+
+/* =========================
+   AUTH USER: UPDATE PROFILE  ✅ FIX
+========================= */
+router.patch('/profile', auth, async (req, res) => {
+  try {
+    const { name, photoUrl } = req.body;
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { name, photoUrl },
+      { new: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (err) {
+    console.error('Profile update error:', err);
     res.status(500).json({ msg: 'Server error' });
   }
 });
