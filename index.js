@@ -18,11 +18,17 @@ const app = express();
 // CORS
 app.use(cors({ origin: true }));
 
-// Stripe Webhook (must be before express.json())
-app.use('/webhook', express.raw({ type: 'application/json' }), webhooksRouter);
+// Fix for Stripe webhook + normal JSON parsing (important for Vercel)
+app.use((req, res, next) => {
+  if (req.originalUrl === '/webhook') {
+    express.raw({ type: 'application/json' })(req, res, next);
+  } else {
+    express.json()(req, res, next);
+  }
+});
 
-// Parse JSON
-app.use(express.json());
+// Stripe webhook route
+app.use('/webhook', webhooksRouter);
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -53,9 +59,7 @@ app.get('/api/users/:id', async (req, res) => {
   }
 });
 
-// ADDITIONAL ROUTES FOR ADMIN DASHBOARD STATS (if not in userRoutes/paymentRoutes)
-
-// Get all users (for total users & active tutors count)
+// Get all users (for admin dashboard)
 app.get('/api/users/all', async (req, res) => {
   try {
     const User = require('./models/User');
@@ -67,10 +71,10 @@ app.get('/api/users/all', async (req, res) => {
   }
 });
 
-// Get all payments (for total revenue) - adjust if you have Payment model
+// Get all payments (for admin dashboard)
 app.get('/api/payments/all', async (req, res) => {
   try {
-    const Payment = require('./models/Payment'); // change to your actual Payment model path if different
+    const Payment = require('./models/Payment');
     const payments = await Payment.find();
     res.json(payments);
   } catch (err) {
@@ -90,7 +94,7 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.log('MongoDB error:', err));
 
-// Auto-create admin
+// Auto-create admin (runs once when server starts)
 const createAdmin = async () => {
   try {
     const User = require('./models/User');
@@ -110,8 +114,5 @@ const createAdmin = async () => {
 };
 createAdmin();
 
-// Start Server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log(`Server running on http://localhost:${PORT}`)
-);
+
+module.exports = app;
