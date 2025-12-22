@@ -18,23 +18,9 @@ const app = express();
 /* =========================
    CORS CONFIGURATION
 ========================= */
-const allowedOrigins = [
-  'http://localhost:5173',               // local frontend
-   // deployed frontend
-];
-
 app.use(cors({
-  origin: function(origin, callback) {
-    // allow requests with no origin (curl, Postman)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      return callback(new Error('Not allowed by CORS'), false);
-    }
-    return callback(null, true);
-  },
-  credentials: true,                       // allow cookies/sessions
-  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization']
+  origin: 'http://localhost:5173',
+  credentials: true
 }));
 
 /* =========================
@@ -77,19 +63,19 @@ app.get('/api/users/:id', async (req, res) => {
   }
 });
 
-// Get all users (for admin dashboard)
+// Get all users (admin)
 app.get('/api/users/all', async (req, res) => {
   try {
     const User = require('./models/User');
     const users = await User.find().select('-password');
     res.json(users);
   } catch (err) {
-    console.error('Error fetching all users:', err);
+    console.error('Error fetching users:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// Get all payments (for admin dashboard)
+// Get all payments (admin)
 app.get('/api/payments/all', async (req, res) => {
   try {
     const Payment = require('./models/Payment');
@@ -102,20 +88,20 @@ app.get('/api/payments/all', async (req, res) => {
 });
 
 // Root test
-app.get('/', (req, res) => res.send('Tuition Management Server Running!'));
+app.get('/', (req, res) => {
+  res.send('Tuition Management Server Running!');
+});
 
 /* =========================
-   DATABASE CONNECTION
+   DATABASE CONNECTION + SERVER
 ========================= */
+const PORT = process.env.PORT || 5000;
+
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.log('MongoDB error:', err));
+  .then(async () => {
+    console.log('MongoDB connected');
 
-/* =========================
-   AUTO-CREATE ADMIN
-========================= */
-const createAdmin = async () => {
-  try {
+    // ✅ AUTO-CREATE ADMIN (SAFE)
     const User = require('./models/User');
     const admin = await User.findOne({ email: 'admin@example.com' });
     if (!admin) {
@@ -125,28 +111,14 @@ const createAdmin = async () => {
         password: await bcrypt.hash('Admin123!', 10),
         role: 'admin'
       });
-      console.log('Admin created → admin@example.com / Admin123!');
+      console.log('Admin created');
     }
-  } catch (e) {
-    console.error('Admin creation error:', e);
-  }
-};
-createAdmin();
-
-/* =========================
-   START SERVER
-========================= */
-const PORT = process.env.PORT || 5000;
-
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log('MongoDB connected');
 
     app.listen(PORT, () => {
-      console.log(`Server is running on http://localhost:${PORT}`);
+      console.log(`Server running on port ${PORT}`);
     });
   })
-  .catch((err) => {
+  .catch(err => {
     console.error('MongoDB connection error:', err.message);
   });
 
