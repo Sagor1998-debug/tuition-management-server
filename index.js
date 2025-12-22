@@ -15,10 +15,31 @@ const devRoutes = require('./routes/dev');
 
 const app = express();
 
-// CORS
-app.use(cors({ origin: true }));
+/* =========================
+   CORS CONFIGURATION
+========================= */
+const allowedOrigins = [
+  'http://localhost:5173',               // local frontend
+   // deployed frontend
+];
 
-// Fix for Stripe webhook + normal JSON parsing (important for Vercel)
+app.use(cors({
+  origin: function(origin, callback) {
+    // allow requests with no origin (curl, Postman)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      return callback(new Error('Not allowed by CORS'), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true,                       // allow cookies/sessions
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization']
+}));
+
+/* =========================
+   BODY PARSING & STRIPE WEBHOOK FIX
+========================= */
 app.use((req, res, next) => {
   if (req.originalUrl === '/webhook') {
     express.raw({ type: 'application/json' })(req, res, next);
@@ -27,30 +48,27 @@ app.use((req, res, next) => {
   }
 });
 
-// Stripe webhook route
+/* =========================
+   ROUTES
+========================= */
 app.use('/webhook', webhooksRouter);
 
-// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/tuitions', tuitionRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/dev', devRoutes);
 
-// GET SINGLE TUTOR BY ID (for TutorProfile page)
+// GET SINGLE TUTOR BY ID
 app.get('/api/users/:id', async (req, res) => {
   try {
     const User = require('./models/User');
     const user = await User.findById(req.params.id).select('-password');
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    if (user.role !== 'tutor') {
-      return res.status(404).json({ message: 'Tutor not found' });
-    }
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (user.role !== 'tutor') return res.status(404).json({ message: 'Tutor not found' });
 
     res.json(user);
   } catch (err) {
@@ -83,18 +101,19 @@ app.get('/api/payments/all', async (req, res) => {
   }
 });
 
-// DEV Routes
-app.use('/dev', devRoutes);
-
 // Root test
 app.get('/', (req, res) => res.send('Tuition Management Server Running!'));
 
-// DB Connection
+/* =========================
+   DATABASE CONNECTION
+========================= */
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.log('MongoDB error:', err));
 
-// Auto-create admin (runs once when server starts)
+/* =========================
+   AUTO-CREATE ADMIN
+========================= */
 const createAdmin = async () => {
   try {
     const User = require('./models/User');
@@ -114,21 +133,21 @@ const createAdmin = async () => {
 };
 createAdmin();
 
-
+/* =========================
+   START SERVER
+========================= */
 const PORT = process.env.PORT || 5000;
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log('MongoDB connected');
-    
+
     app.listen(PORT, () => {
       console.log(`Server is running on http://localhost:${PORT}`);
-      console.log(`Visit http://localhost:${PORT} in your browser`);
     });
   })
   .catch((err) => {
     console.error('MongoDB connection error:', err.message);
   });
-
 
 module.exports = app;
