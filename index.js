@@ -19,8 +19,10 @@ const app = express();
    CORS CONFIGURATION
 ========================= */
 app.use(cors({
-  origin: '*',
+  origin: ['http://localhost:5173', 'https://luminous-frangollo-b6b2d3.netlify.app'],
+  credentials: true
 }));
+
 
 
 /* =========================
