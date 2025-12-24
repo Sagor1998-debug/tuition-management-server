@@ -2,7 +2,11 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const TuitionPost = require('../models/TuitionPost');
+ const authRoutes = require('./auth');
 
+
+
+ router.use('/auth', authRoutes);
 
 // ─────────────────────────────────────────────
 // GET ALL STUDENTS
