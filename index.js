@@ -19,9 +19,9 @@ const app = express();
    CORS CONFIGURATION
 ========================= */
 app.use(cors({
-  origin: 'http://localhost:5173',
-  credentials: true
+  origin: '*',
 }));
+
 
 /* =========================
    BODY PARSING & STRIPE WEBHOOK FIX
