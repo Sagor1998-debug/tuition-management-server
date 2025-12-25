@@ -1,138 +1,115 @@
-// dev.js
 const express = require('express');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const router = express.Router();
-require('dotenv').config();
-
 const User = require('../models/User');
 const TuitionPost = require('../models/TuitionPost');
+ const authRoutes = require('./auth');
 
-// =========================
-// AUTH MIDDLEWARE
-// =========================
-const auth = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ msg: 'No token provided' });
 
+
+ router.use('/auth', authRoutes);
+
+// ─────────────────────────────────────────────
+// GET ALL STUDENTS
+// ─────────────────────────────────────────────
+router.get('/students', async (req, res) => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // { id, role }
-    next();
+    const students = await User.find({ role: 'student' });
+    res.json(students);
   } catch (err) {
-    return res.status(401).json({ msg: 'Invalid token' });
-  }
-};
-
-// =========================
-// AUTH ROUTES
-// =========================
-
-// Register
-router.post('/auth/register', async (req, res) => {
-  try {
-    const { name, email, password, role } = req.body;
-    if (!name || !email || !password) return res.status(400).json({ msg: 'Missing fields' });
-
-    let user = await User.findOne({ email });
-    if (user) return res.status(400).json({ msg: 'User already exists' });
-
-    user = new User({
-      name,
-      email,
-      password: await bcrypt.hash(password, 10),
-      role: role || 'student',
-    });
-    await user.save();
-
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
-
-    res.json({ token, user: { id: user._id, name, email, role: user.role } });
-  } catch (err) {
-    res.status(500).json({ msg: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Login
-router.post('/auth/login', async (req, res) => {
+
+// ─────────────────────────────────────────────
+// GET STUDENT BY ID
+// ─────────────────────────────────────────────
+router.get('/students/:id', async (req, res) => {
   try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ msg: 'Invalid credentials' });
+    const student = await User.findById(req.params.id);
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ msg: 'Invalid credentials' });
+    if (!student) {
+      return res.status(404).json({ error: "Student not found" });
+    }
 
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
-
-    res.json({
-      token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role }
-    });
+    res.json(student);
   } catch (err) {
-    res.status(500).json({ msg: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// =========================
-// USERS
-// =========================
 
-// Current logged-in user
-router.get('/users/profile', auth, async (req, res) => {
+// ─────────────────────────────────────────────
+// GET ALL TUTORS
+// ─────────────────────────────────────────────
+router.get('/tutors', async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-password');
-    if (!user) return res.status(404).json({ msg: 'User not found' });
-    res.json(user);
+    // fetch all tutors as plain JS objects
+    const tutors = await User.find({ role: 'tutor' }).lean();
+
+    // inject default qualifications and experience if missing
+    const tutorsWithDefaults = tutors.map(t => ({
+      ...t,
+      qualifications: t.qualifications || "Not specified",
+      experience: t.experience || "Not specified"
+    }));
+
+    // send to frontend wrapped in "tutors" key
+    res.json({ tutors: tutorsWithDefaults });
   } catch (err) {
-    res.status(500).json({ msg: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Public: get all tutors
-router.get('/users/tutors', async (req, res) => {
-  try {
-    const tutors = await User.find({ role: 'tutor' }).select('-password');
-    res.json(tutors);
-  } catch (err) {
-    res.status(500).json({ msg: err.message });
-  }
-});
 
-// Public: get tutor by ID
-router.get('/users/tutors/:id', async (req, res) => {
+// ─────────────────────────────────────────────
+// GET TUTOR BY ID
+// ─────────────────────────────────────────────
+router.get('/tutors/:id', async (req, res) => {
   try {
-    const tutor = await User.findOne({ _id: req.params.id, role: 'tutor' }).select('-password');
-    if (!tutor) return res.status(404).json({ msg: 'Tutor not found' });
+    const tutor = await User.findById(req.params.id);
+
+    if (!tutor) {
+      return res.status(404).json({ error: "Tutor not found" });
+    }
+
     res.json(tutor);
   } catch (err) {
-    res.status(500).json({ msg: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// =========================
-// TUITIONS
-// =========================
 
-// Public: get all tuitions
+// ─────────────────────────────────────────────
+// GET ALL TUITIONS
+// ─────────────────────────────────────────────
 router.get('/tuitions', async (req, res) => {
   try {
     const tuitions = await TuitionPost.find().populate('postedBy', 'name email');
     res.json(tuitions);
   } catch (err) {
-    res.status(500).json({ msg: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Public: get tuition by ID
+
+// ─────────────────────────────────────────────
+// GET TUITION BY ID
+// ─────────────────────────────────────────────
 router.get('/tuitions/:id', async (req, res) => {
   try {
-    const tuition = await TuitionPost.findById(req.params.id).populate('postedBy', 'name email');
-    if (!tuition) return res.status(404).json({ msg: 'Tuition not found' });
+    const tuition = await TuitionPost.findById(req.params.id)
+      .populate('postedBy', 'name email');
+
+    if (!tuition) {
+      return res.status(404).json({ error: "Tuition not found" });
+    }
+
     res.json(tuition);
   } catch (err) {
-    res.status(500).json({ msg: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
+
 
 module.exports = router;
