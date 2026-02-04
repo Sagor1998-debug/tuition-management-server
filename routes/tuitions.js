@@ -47,6 +47,7 @@ router.get('/', async (req, res) => {
       }
     });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ msg: err.message });
   }
 });
@@ -59,12 +60,11 @@ router.get('/:id', async (req, res) => {
       status: 'approved'
     }).populate('postedBy', 'name phone');
 
-    if (!tuition) {
-      return res.status(404).json({ msg: 'Tuition not found' });
-    }
+    if (!tuition) return res.status(404).json({ msg: 'Tuition not found' });
 
     res.json(tuition);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ msg: 'Invalid tuition ID' });
   }
 });
@@ -77,6 +77,7 @@ router.post('/', auth, async (req, res) => {
     await tuition.save();
     res.json(tuition);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ msg: err.message });
   }
 });
@@ -85,6 +86,7 @@ router.post('/', auth, async (req, res) => {
 router.get('/my', auth, async (req, res) => {
   try {
     const tuitions = await TuitionPost.find({ postedBy: req.user.id })
+      .populate('postedBy', 'name phone') // fixed: populate postedBy
       .sort({ createdAt: -1 });
     res.json(tuitions);
   } catch (err) {
@@ -99,14 +101,12 @@ router.put('/:id', auth, async (req, res) => {
   
   try {
     const tuition = await TuitionPost.findOneAndUpdate(
-      { _id: req.params.id, postedBy: req.user.id }, // Ensure only owner can update
+      { _id: req.params.id, postedBy: req.user.id },
       req.body,
       { new: true, runValidators: true }
-    );
+    ).populate('postedBy', 'name phone');
 
-    if (!tuition) {
-      return res.status(404).json({ msg: 'Tuition not found or you are not the owner' });
-    }
+    if (!tuition) return res.status(404).json({ msg: 'Tuition not found or you are not the owner' });
 
     res.json(tuition);
   } catch (err) {
@@ -125,9 +125,7 @@ router.delete('/:id', auth, async (req, res) => {
       postedBy: req.user.id
     });
 
-    if (!tuition) {
-      return res.status(404).json({ msg: 'Tuition not found or you are not the owner' });
-    }
+    if (!tuition) return res.status(404).json({ msg: 'Tuition not found or you are not the owner' });
 
     res.json({ msg: 'Tuition deleted successfully' });
   } catch (err) {
@@ -146,20 +144,26 @@ router.patch('/:id/status', auth, async (req, res) => {
       { status },
       { new: true }
     );
+    if (!tuition) return res.status(404).json({ msg: 'Tuition not found' });
     res.json(tuition);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ msg: err.message });
   }
 });
 
 // Admin & Student: Get all tuitions (including pending)
 router.get('/manage', auth, async (req, res) => {
-  const query = req.user.role === 'admin' ? {} : { postedBy: req.user.id };
-  TuitionPost.find(query)
-    .populate('postedBy', 'name')
-    .sort({ createdAt: -1 })
-    .then(data => res.json(data))
-    .catch(err => res.status(500).json({ msg: err.message }));
+  try {
+    const query = req.user.role === 'admin' ? {} : { postedBy: req.user.id };
+    const data = await TuitionPost.find(query)
+      .populate('postedBy', 'name')
+      .sort({ createdAt: -1 });
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: err.message });
+  }
 });
 
 module.exports = router;
