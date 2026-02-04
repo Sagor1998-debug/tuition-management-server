@@ -51,6 +51,24 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Public: Get single APPROVED tuition by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const tuition = await TuitionPost.findOne({
+      _id: req.params.id,
+      status: 'approved'
+    }).populate('postedBy', 'name phone');
+
+    if (!tuition) {
+      return res.status(404).json({ msg: 'Tuition not found' });
+    }
+
+    res.json(tuition);
+  } catch (err) {
+    res.status(500).json({ msg: 'Invalid tuition ID' });
+  }
+});
+
 // Student: Create tuition (goes to pending)
 router.post('/', auth, async (req, res) => {
   if (req.user.role !== 'student') return res.status(403).json({ msg: 'Only students can post' });
