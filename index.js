@@ -16,44 +16,14 @@ const devRoutes = require('./routes/dev');
 const app = express();
 
 /* =========================
-   CORS CONFIGURATION – Updated for reliable preflight & localhost ports
+   CORS CONFIGURATION
 ========================= */
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5174',                    // your current Vite port
-  'https://luminous-frangollo-b6b2d3.netlify.app',
-  // You can add more production domains here later if needed
-];
-
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, Postman, etc.)
-    if (!origin) return callback(null, true);
-    
-    // Allow if origin is in list or is a Render preview domain
-    if (allowedOrigins.includes(origin) || origin.endsWith('.onrender.com')) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin'],
-  exposedHeaders: ['Authorization'],
+  origin: ['http://localhost:5173', 'https://luminous-frangollo-b6b2d3.netlify.app'],
+  credentials: true
 }));
 
-// Explicitly handle all OPTIONS preflight requests (very important for Render + CORS)
-app.options('*', (req, res) => {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin) || !origin) {
-    res.header('Access-Control-Allow-Origin', origin || '*');
-  }
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.sendStatus(204); // successful preflight
-});
+
 
 /* =========================
    BODY PARSING & STRIPE WEBHOOK FIX

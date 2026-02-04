@@ -5,9 +5,7 @@ const TuitionPost = require('../models/TuitionPost');
 const auth = require('../middleware/auth');
 const router = express.Router();
 
-/* ===============================
-   TUTOR: Apply to a tuition
-=============================== */
+
 router.post('/', auth, async (req, res) => {
   if (req.user.role !== 'tutor') return res.status(403).json({ msg: 'Only tutors can apply' });
   
