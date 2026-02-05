@@ -16,14 +16,23 @@ const devRoutes = require('./routes/dev');
 const app = express();
 
 /* =========================
-   CORS CONFIGURATION
+   CORS CONFIGURATION (FIXED)
 ========================= */
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://luminous-frangollo-b6b2d3.netlify.app'
+];
+
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://luminous-frangollo-b6b2d3.netlify.app'],
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
-
-
 
 /* =========================
    BODY PARSING & STRIPE WEBHOOK FIX
@@ -49,6 +58,10 @@ app.use('/api/users', userRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/dev', devRoutes);
 
+/* =========================
+   USERS & PAYMENTS (UNCHANGED)
+========================= */
+
 // GET SINGLE TUTOR BY ID
 app.get('/api/users/:id', async (req, res) => {
   try {
@@ -56,7 +69,9 @@ app.get('/api/users/:id', async (req, res) => {
     const user = await User.findById(req.params.id).select('-password');
 
     if (!user) return res.status(404).json({ message: 'User not found' });
-    if (user.role !== 'tutor') return res.status(404).json({ message: 'Tutor not found' });
+    if (user.role !== 'tutor') {
+      return res.status(404).json({ message: 'Tutor not found' });
+    }
 
     res.json(user);
   } catch (err) {
@@ -65,7 +80,7 @@ app.get('/api/users/:id', async (req, res) => {
   }
 });
 
-// Get all users (admin)
+// GET ALL USERS (ADMIN)
 app.get('/api/users/all', async (req, res) => {
   try {
     const User = require('./models/User');
@@ -77,7 +92,7 @@ app.get('/api/users/all', async (req, res) => {
   }
 });
 
-// Get all payments (admin)
+// GET ALL PAYMENTS (ADMIN)
 app.get('/api/payments/all', async (req, res) => {
   try {
     const Payment = require('./models/Payment');
@@ -89,7 +104,9 @@ app.get('/api/payments/all', async (req, res) => {
   }
 });
 
-// Root test
+/* =========================
+   ROOT TEST
+========================= */
 app.get('/', (req, res) => {
   res.send('Tuition Management Server Running!');
 });
@@ -99,13 +116,15 @@ app.get('/', (req, res) => {
 ========================= */
 const PORT = process.env.PORT || 5000;
 
-mongoose.connect(process.env.MONGO_URI)
+mongoose
+  .connect(process.env.MONGO_URI)
   .then(async () => {
     console.log('MongoDB connected');
 
-    // ✅ AUTO-CREATE ADMIN (SAFE)
+    // AUTO-CREATE ADMIN (UNCHANGED)
     const User = require('./models/User');
     const admin = await User.findOne({ email: 'admin@example.com' });
+
     if (!admin) {
       await User.create({
         name: 'Admin',
